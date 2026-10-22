@@ -268,8 +268,10 @@ function loadTrips(){
     });
   });
 }
-function persist(t){
-  if(S.backend!=='db')return;
+function persist(t,successMessage,failureMessage){
+  if(S.backend!=='db')return Promise.resolve(false);
+  successMessage=successMessage||'Changes saved successfully.';
+  failureMessage=failureMessage||'Could not save changes. Please try again.';
   if(!t.share_token)t.share_token=makeToken();
   var task=(Q[t.id]||Promise.resolve()).then(function(){
     return sb.from('trips').upsert({id:t.id,name:t.name,start_date:t.start,end_date:t.end,created_at:t.createdAt||Date.now(),share_token:t.share_token,budget_cash:Number(t.budgetCash)||0,budget_upi:Number(t.budgetUpi)||0,budget_card:Number(t.budgetCard)||0},{onConflict:'id'});
@@ -279,14 +281,18 @@ function persist(t){
     var chain=Promise.resolve();
     if(gone.length)chain=chain.then(function(){return sb.from('expenses').delete().eq('trip_id',t.id).in('id',gone).then(function(x){if(x.error)throw x.error;});});
     if(rows.length)chain=chain.then(function(){return sb.from('expenses').upsert(rows,{onConflict:'id'}).then(function(x){if(x.error)throw x.error;});});
-    return chain.then(function(){knownExpenseIds[t.id]=now;toast('Saved to Supabase.');});
-  }).catch(function(e){console.error(e);toast('Could not save to Supabase. Check your connection and table policies.');});
+    return chain.then(function(){knownExpenseIds[t.id]=now;toast(successMessage);return true;});
+  }).catch(function(e){console.error(e);toast(failureMessage);return false;});
   Q[t.id]=task;
   return task;
 }
 function dropTrip(id){
   S.trips=S.trips.filter(function(t){return t.id!==id;});
-  if(S.backend==='db')sb.from('trips').delete().eq('id',id).then(function(r){if(r.error)toast('Could not delete trip. Check database permissions.');});
+  if(S.backend!=='db'){toast('Trip deleted successfully.');return Promise.resolve(true);}
+  return sb.from('trips').delete().eq('id',id).then(function(r){
+    if(r.error)throw r.error;
+    delete knownExpenseIds[id];toast('Trip deleted successfully.');return true;
+  }).catch(function(e){console.error(e);toast('Failed to delete trip. Please try again.');return false;});
 }
 function curTrip(){return S.trips.filter(function(t){return t.id===S.tripId;})[0]||null;}
 
@@ -546,9 +552,10 @@ function submitSheet(){
     if(e<s)return showErr('The end date cannot be before the start date.');
     if(bCash<0||bUpi<0||bCard<0)return showErr('Budgets cannot be negative.');
     var t=sh.id&&S.trips.filter(function(x){return x.id===sh.id;})[0];
+    var isUpdate=!!t;
     if(t){t.name=name;t.start=s;t.end=e;t.budgetCash=bCash;t.budgetUpi=bUpi;t.budgetCard=bCard;}
     else{t={id:newId('t'),name:name,start:s,end:e,budgetCash:bCash,budgetUpi:bUpi,budgetCard:bCard,createdAt:Date.now(),share_token:makeToken(),expenses:[]};S.trips.push(t);S.tripId=t.id;S.screen='trip';S.tab='expenses';S.filter='All';S.sel=null;}
-    persist(t);closeSheet();render();return;
+    persist(t,isUpdate?'Trip updated successfully.':'Trip created successfully.',isUpdate?'Failed to update trip. Please try again.':'Failed to create trip. Please try again.');closeSheet();render();return;
   }
   var v=collect(),spec=CAT[sh.cat].f,out={id:sh.id||newId('e'),cat:sh.cat,ts:sh.ts||Date.now()};
   for(var i=0;i<spec.length;i++){
@@ -562,9 +569,9 @@ function submitSheet(){
   }
   S.lastPay=out.payBy;
   var tr=curTrip();
-  var idx=tr.expenses.map(function(x){return x.id;}).indexOf(out.id);
-  if(idx>=0)tr.expenses[idx]=out;else tr.expenses.push(out);
-  S.sel=null;persist(tr);closeSheet();render();
+  var idx=tr.expenses.map(function(x){return x.id;}).indexOf(out.id),isUpdate=idx>=0;
+  if(isUpdate)tr.expenses[idx]=out;else tr.expenses.push(out);
+  S.sel=null;persist(tr,isUpdate?'Expense updated successfully.':'Expense added successfully.',isUpdate?'Failed to update expense. Please try again.':'Failed to add expense. Please try again.');closeSheet();render();
 }
 
 /* ---------- events ---------- */
@@ -589,7 +596,7 @@ document.addEventListener('click',function(ev){
     case 'close-sheet':closeSheet();break;
     case 'del-ask':$('#footBtns').hidden=true;$('#footBtns').style.display='none';$('#confirmBox').hidden=false;break;
     case 'del-no':$('#confirmBox').hidden=true;$('#footBtns').hidden=false;$('#footBtns').style.display='flex';break;
-    case 'del-exp-yes':var t=curTrip();t.expenses=t.expenses.filter(function(x){return x.id!==S.sheet.id;});persist(t);closeSheet();render();break;
+    case 'del-exp-yes':var t=curTrip();t.expenses=t.expenses.filter(function(x){return x.id!==S.sheet.id;});persist(t,'Expense deleted successfully.','Failed to delete expense. Please try again.');closeSheet();render();break;
     case 'del-trip-yes':var tid=S.sheet.id;dropTrip(tid);closeSheet();S.screen='home';S.tripId=null;render();window.scrollTo(0,0);break;
   }
 });

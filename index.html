@@ -347,7 +347,7 @@ function homeScreen(){
   var h=topbar(BRAND);
   var tabs='<div class="tabs" role="tablist"><button role="tab" data-action="home-tab" data-tab="trips" aria-selected="'+(S.homeTab==='trips')+'">Trips</button><button role="tab" data-action="home-tab" data-tab="report" aria-selected="'+(S.homeTab==='report')+'">All-trip report</button></div>';
   if(!S.trips.length){
-    return h+'<h1>Your trips</h1><div class="empty"><h2>No trips yet</h2><p>Create a trip with its dates, then log food, travel, hotels and everything else as you go.</p><div class="actions"><button class="btn" data-action="new-trip">'+ICON.plus+' New trip</button><button class="btn ghost" data-action="load-sample">Load a sample trip</button></div></div>'+storageNote();
+    return h+'<h1>Your trips</h1><div class="empty"><h2>No trips yet</h2><p>Create a trip with its dates, then log food, travel, hotels and everything else as you go.</p><div class="actions"><button class="btn" data-action="new-trip">'+ICON.plus+' New trip</button></div></div>'+storageNote();
   }
   var all=allExpenses();
   var body;
@@ -580,7 +580,6 @@ document.addEventListener('click',function(ev){
   var a=el.getAttribute('data-action'),id=el.getAttribute('data-id'),cat=el.getAttribute('data-cat');
   switch(a){
     case 'new-trip':openTrip();break;
-    case 'load-sample':loadSample();break;
     case 'open-trip':S.tripId=id;S.screen='trip';S.tab='expenses';S.filter='All';S.sel=null;render();window.scrollTo(0,0);break;
     case 'back':S.screen='home';S.sel=null;render();window.scrollTo(0,0);break;
     case 'edit-trip':openTrip(S.tripId);break;
@@ -611,30 +610,7 @@ document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&S.sheet)c
 
 function loadSample(){
   var d=today(),s=addDays(d,-6),e=addDays(d,-3),k=0;
-  function x(o){o.id=newId('e');o.ts=Date.now()+(k++);return o;}
-  var t={id:newId('t'),name:'Goa weekend (example)',start:s,end:e,createdAt:Date.now(),share_token:makeToken(),expenses:[
-    x({cat:'Travel',mode:'Train',place:'Pune to Madgaon',start:s,end:s,cost:1850,payBy:'UPI'}),
-    x({cat:'Hotel',name:'Beachside Stay',place:'Candolim',checkIn:s,checkOut:e,cost:14400,payBy:'Credit card'}),
-    x({cat:'Food',meal:'Lunch',place:'Fisherman’s Wharf',date:s,cost:1260,payBy:'UPI'}),
-    x({cat:'Drink',kind:'Tea / Coffee',place:'Station stall',date:s,cost:60,payBy:'Cash'}),
-    x({cat:'Travel',mode:'Taxi',place:'Station to hotel',start:s,end:s,cost:850,payBy:'Cash'}),
-    x({cat:'Food',meal:'Dinner',place:'Beach shack',date:addDays(s,1),cost:1780,payBy:'UPI'}),
-    x({cat:'Entertainment',what:'Water sports',place:'Calangute',date:addDays(s,1),cost:2400,payBy:'Cash'}),
-    x({cat:'Travel',mode:'Rental',place:'Scooter, 2 days',start:addDays(s,1),end:addDays(s,2),cost:1400,payBy:'Cash'}),
-    x({cat:'Parking',place:'Baga beach',start:addDays(s,2),end:addDays(s,2),cost:100,payBy:'Cash'}),
-    x({cat:'Shopping',item:'Cashew packs',qty:4,place:'Mapusa market',date:addDays(s,2),cost:1600,payBy:'UPI'}),
-    x({cat:'Medical',what:'Sunburn cream',place:'Pharmacy',date:addDays(s,2),cost:340,payBy:'UPI'}),
-    x({cat:'Toll',place:'Khalapur toll plaza',date:e,cost:210,payBy:'UPI'}),
-    x({cat:'Food',meal:'Breakfast',place:'Hotel cafe',date:e,cost:620,payBy:'Cash'}),
-    x({cat:'Miscellaneous',what:'Tips',date:e,cost:300,payBy:'Cash'})
-  ]};
-  S.trips.push(t);persist(t);S.tripId=t.id;S.screen='trip';S.tab='report';S.sel=null;render();
-}
-
-/* ---------- boot ---------- */
-render();
-(function boot(){
-  if(!window.supabase||!window.supabase.createClient){S.backend='local';S.trips=[];render();toast('Supabase library did not load. Check your internet connection.');return;}
+  function x(o){o.id=newId('e');o.ts=Date.now(nd='local';S.trips=[];render();toast('Supabase library did not load. Check your internet connection.');return;}
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   S.backend='db';
   loadTrips().catch(function(e){console.error(e);S.backend='db';S.trips=[];render();toast(e&&e.message&&e.message.indexOf('invalid')>=0?e.message:'Could not load Supabase data. Check table names and Row Level Security policies.');});

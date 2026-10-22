@@ -608,9 +608,10 @@ document.addEventListener('change',function(ev){
 document.addEventListener('submit',function(ev){ev.preventDefault();submitSheet();});
 document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&S.sheet)closeSheet();});
 
-function loadSample(){
-  var d=today(),s=addDays(d,-6),e=addDays(d,-3),k=0;
-  function x(o){o.id=newId('e');o.ts=Date.now(nd='local';S.trips=[];render();toast('Supabase library did not load. Check your internet connection.');return;}
+/* ---------- boot ---------- */
+render();
+(function boot(){
+  if(!window.supabase||!window.supabase.createClient){S.backend='local';S.trips=[];render();toast('Supabase library did not load. Check your internet connection.');return;}
   sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   S.backend='db';
   loadTrips().catch(function(e){console.error(e);S.backend='db';S.trips=[];render();toast(e&&e.message&&e.message.indexOf('invalid')>=0?e.message:'Could not load Supabase data. Check table names and Row Level Security policies.');});
